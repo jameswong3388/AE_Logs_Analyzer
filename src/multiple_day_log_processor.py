@@ -1,10 +1,13 @@
-import csv
 import os
 import re
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 
+import csv
+
+# Define the project root directory
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 def extract_time_range(log_content):
     lines = log_content.split('\n')
@@ -125,7 +128,9 @@ def parse_sap_log(log_content):
     return jobs, reports, events
 
 def save_to_csv(data, filename, headers):
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+    filepath = os.path.join(PROJECT_ROOT, 'csv', filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
         for key, value in data.items():
@@ -134,11 +139,12 @@ def save_to_csv(data, filename, headers):
             writer.writerow(row)
 
 def save_events_to_csv(events, filename):
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+    filepath = os.path.join(PROJECT_ROOT, 'csv', filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Timestamp', 'Event', 'Message Code'])
         writer.writerows(events)
-
 
 def process_logs_to_csv(logs_folder):
     all_jobs = defaultdict(lambda: defaultdict(str))
@@ -152,9 +158,10 @@ def process_logs_to_csv(logs_folder):
     total_start_time = time.time()
 
     # Process each log file in the folder
-    for filename in os.listdir(logs_folder):
+    logs_path = os.path.join(PROJECT_ROOT, logs_folder)
+    for filename in os.listdir(logs_path):
         if filename.endswith('.LOG.txt'):
-            log_file_path = os.path.join(logs_folder, filename)
+            log_file_path = os.path.join(logs_path, filename)
             print(f"Processing file: {filename}")
 
             file_start_time = time.time()
@@ -204,12 +211,12 @@ def process_logs_to_csv(logs_folder):
     # Save combined results to CSV
     job_headers = ['id', 'name', 'scheduled_time', 'start_time', 'end_time', 'return_code',
                    'scheduled_message_code', 'start_message_code', 'end_message_code', 'remove_message_code']
-    save_to_csv(all_jobs, 'csv/combined_jobs.csv', job_headers)
+    save_to_csv(all_jobs, 'combined_jobs.csv', job_headers)
 
     report_headers = ['id', 'file_name', 'start_time', 'end_time', 'start_message_code', 'end_message_code']
-    save_to_csv(all_reports, 'csv/combined_reports.csv', report_headers)
+    save_to_csv(all_reports, 'combined_reports.csv', report_headers)
 
-    save_events_to_csv(all_events, 'csv/combined_events.csv')
+    save_events_to_csv(all_events, 'combined_events.csv')
 
     # Calculate and print total processing time
     total_end_time = time.time()
@@ -222,17 +229,20 @@ def process_logs_to_csv(logs_folder):
     print(f"\nTotal processing time: {total_processing_time:.2f} seconds")
     print(f"Average processing time per file: {total_processing_time / len(processing_times):.2f} seconds")
 
-    print("\nCombined data has been saved to combined_jobs.csv, combined_reports.csv, and combined_events.csv")
+    print(
+        "\nCombined data has been saved to csv/combined_jobs.csv, csv/combined_reports.csv, and csv/combined_events.csv")
 
     # Save processing times to CSV
-    with open('csv/processing_times.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    processing_times_path = os.path.join(PROJECT_ROOT, 'csv', 'processing_times.csv')
+    os.makedirs(os.path.dirname(processing_times_path), exist_ok=True)
+    with open(processing_times_path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Filename', 'Processing Time (seconds)'])
         writer.writerows(processing_times)
         writer.writerow(['Total', total_processing_time])
         writer.writerow(['Average', total_processing_time / len(processing_times)])
 
-    print("Processing times have been saved to processing_times.csv")
+    print("Processing times have been saved to csv/processing_times.csv")
 
 if __name__ == "__main__":
     logs_folder = 'logs'
