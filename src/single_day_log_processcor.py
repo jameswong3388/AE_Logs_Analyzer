@@ -1,9 +1,10 @@
-import csv
 import os
 import re
 import time
 from collections import defaultdict
 from datetime import datetime
+
+import csv
 
 # Define the project root directory
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +45,10 @@ def parse_sap_log(log_content):
         if timestamp_match and message_code_match:
             timestamp = datetime.strptime(timestamp_match.group(1), '%Y%m%d/%H%M%S.%f')
             message_code = message_code_match.group(1)
+            event = line[timestamp_match.end():].strip()  # Extract everything after the timestamp as the event
+
+            # Add each line as an event
+            events.append((timestamp, event, message_code))
 
             # Check for job is to be started
             job_is_to_be_started_match = re.search(job_is_to_be_started_pattern, line)
@@ -54,7 +59,6 @@ def parse_sap_log(log_content):
                     'scheduled_time': timestamp,
                     'scheduled_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) is to be started", message_code))
 
             # Check for job start
             job_start_match = re.search(job_start_pattern, line)
@@ -65,7 +69,6 @@ def parse_sap_log(log_content):
                     'start_time': timestamp,
                     'start_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) started", message_code))
 
             # Check for job end (update return code)
             job_end_match = re.search(job_end_pattern, line)
@@ -76,7 +79,6 @@ def parse_sap_log(log_content):
                     'return_code': return_code,
                     'end_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) ended with return code {return_code}", message_code))
 
             # Check for job removal (use as job end)
             job_remove_match = re.search(job_remove_pattern, line)
@@ -87,7 +89,6 @@ def parse_sap_log(log_content):
                     'end_time': timestamp,
                     'remove_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) removed from job table", message_code))
 
             # Check for report start
             report_start_match = re.search(report_start_pattern, line)
@@ -98,7 +99,6 @@ def parse_sap_log(log_content):
                     'start_time': timestamp,
                     'start_message_code': message_code
                 }
-                events.append((timestamp, f"Report {report_id} started for file {file_name}", message_code))
 
             # Check for report end
             report_end_match = re.search(report_end_pattern, line)
@@ -107,10 +107,8 @@ def parse_sap_log(log_content):
                 if report_id in reports:
                     reports[report_id]['end_time'] = timestamp
                     reports[report_id]['end_message_code'] = message_code
-                events.append((timestamp, f"Report {report_id} ended normally", message_code))
 
     return jobs, reports, events
-
 
 def save_to_csv(data, filename, headers):
     filepath = os.path.join(PROJECT_ROOT, 'csv', filename)

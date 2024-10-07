@@ -60,70 +60,57 @@ def parse_sap_log(log_content):
         if timestamp_match and message_code_match:
             timestamp = datetime.strptime(timestamp_match.group(1), '%Y%m%d/%H%M%S.%f')
             message_code = message_code_match.group(1)
+            event = line[timestamp_match.end():].strip()  # Extract everything after the timestamp as the event
 
-            # Check for job is to be started
-            job_is_to_be_started_match = re.search(job_is_to_be_started_pattern, line)
-            if job_is_to_be_started_match:
-                job_name, run_id = job_is_to_be_started_match.groups()
+            # Add each line as an event
+            events.append((timestamp, event, message_code))
+
+            # Check for specific patterns
+            if re.search(job_is_to_be_started_pattern, line):
+                job_name, run_id = re.search(job_is_to_be_started_pattern, line).groups()
                 jobs[run_id].update({
                     'name': job_name,
                     'scheduled_time': timestamp,
                     'scheduled_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) is to be started", message_code))
 
-            # Check for job start
-            job_start_match = re.search(job_start_pattern, line)
-            if job_start_match:
-                job_name, run_id = job_start_match.groups()
+            elif re.search(job_start_pattern, line):
+                job_name, run_id = re.search(job_start_pattern, line).groups()
                 jobs[run_id].update({
                     'name': job_name,
                     'start_time': timestamp,
                     'start_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) started", message_code))
 
-            # Check for job end (update return code)
-            job_end_match = re.search(job_end_pattern, line)
-            if job_end_match:
-                job_name, run_id, return_code = job_end_match.groups()
+            elif re.search(job_end_pattern, line):
+                job_name, run_id, return_code = re.search(job_end_pattern, line).groups()
                 jobs[run_id].update({
                     'name': job_name,
                     'return_code': return_code,
                     'end_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) ended with return code {return_code}", message_code))
 
-            # Check for job removal (use as job end)
-            job_remove_match = re.search(job_remove_pattern, line)
-            if job_remove_match:
-                job_name, run_id = job_remove_match.groups()
+            elif re.search(job_remove_pattern, line):
+                job_name, run_id = re.search(job_remove_pattern, line).groups()
                 jobs[run_id].update({
                     'name': job_name,
                     'end_time': timestamp,
                     'remove_message_code': message_code
                 })
-                events.append((timestamp, f"Job {job_name} (RunID: {run_id}) removed from job table", message_code))
 
-            # Check for report start
-            report_start_match = re.search(report_start_pattern, line)
-            if report_start_match:
-                report_id, file_name = report_start_match.groups()
+            elif re.search(report_start_pattern, line):
+                report_id, file_name = re.search(report_start_pattern, line).groups()
                 reports[report_id] = {
                     'file_name': file_name,
                     'start_time': timestamp,
                     'start_message_code': message_code
                 }
-                events.append((timestamp, f"Report {report_id} started for file {file_name}", message_code))
 
-            # Check for report end
-            report_end_match = re.search(report_end_pattern, line)
-            if report_end_match:
-                report_id = report_end_match.group(1)
+            elif re.search(report_end_pattern, line):
+                report_id = re.search(report_end_pattern, line).group(1)
                 if report_id in reports:
                     reports[report_id]['end_time'] = timestamp
                     reports[report_id]['end_message_code'] = message_code
-                events.append((timestamp, f"Report {report_id} ended normally", message_code))
 
     return jobs, reports, events
 
