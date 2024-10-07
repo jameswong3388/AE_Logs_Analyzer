@@ -7,4 +7,5 @@ combined_events.csv
 jobs.csv
 reports.csv
 events.csv
+processing_times.csv
 logs/

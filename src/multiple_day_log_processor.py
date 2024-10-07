@@ -1,8 +1,9 @@
 import csv
 import os
 import re
+import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def extract_time_range(log_content):
@@ -143,6 +144,12 @@ def process_logs_to_csv(logs_folder):
     all_jobs = defaultdict(lambda: defaultdict(str))
     all_reports = defaultdict(dict)
     all_events = []
+    processing_times = []
+
+    # List of encodings to try
+    encodings = ['utf-8', 'iso-8859-1', 'windows-1252', 'ascii']
+
+    total_start_time = time.time()
 
     # Process each log file in the folder
     for filename in os.listdir(logs_folder):
@@ -150,26 +157,46 @@ def process_logs_to_csv(logs_folder):
             log_file_path = os.path.join(logs_folder, filename)
             print(f"Processing file: {filename}")
 
-            try:
-                with open(log_file_path, 'r', encoding='utf-8') as file:
-                    log_content = file.read()
+            file_start_time = time.time()
 
-                start_time, end_time = extract_time_range(log_content)
-                if start_time and end_time:
-                    print(f"Log period: {start_time} to {end_time}")
-                else:
-                    print("Unable to extract time range from the log file.")
-                    print(f"File size: {os.path.getsize(log_file_path)} bytes")
-                    print(f"First 100 characters: {log_content[:100]}")
+            for encoding in encodings:
+                try:
+                    with open(log_file_path, 'r', encoding=encoding) as file:
+                        log_content = file.read()
 
-                jobs, reports, events = parse_sap_log(log_content)
+                    start_time, end_time = extract_time_range(log_content)
+                    if start_time and end_time:
+                        print(f"Log period: {start_time} to {end_time}")
+                    else:
+                        print("Unable to extract time range from the log file.")
+                        print(f"File size: {os.path.getsize(log_file_path)} bytes")
+                        print(f"First 100 characters: {log_content[:100]}")
 
-                # Merge the results
-                all_jobs.update(jobs)
-                all_reports.update(reports)
-                all_events.extend(events)
-            except Exception as e:
-                print(f"Error processing file {filename}: {str(e)}")
+                    jobs, reports, events = parse_sap_log(log_content)
+
+                    # Merge the results
+                    all_jobs.update(jobs)
+                    all_reports.update(reports)
+                    all_events.extend(events)
+
+                    # Calculate and record processing time for this file
+                    file_end_time = time.time()
+                    file_processing_time = file_end_time - file_start_time
+                    processing_times.append((filename, file_processing_time))
+
+                    print(f"Processed {filename} in {file_processing_time:.2f} seconds")
+
+                    # If we've successfully read and processed the file, break out of the encoding loop
+                    break
+                except UnicodeDecodeError:
+                    # If this encoding didn't work, try the next one
+                    if encoding == encodings[-1]:
+                        print(f"Error: Unable to decode file {filename} with any of the attempted encodings.")
+                        processing_times.append((filename, 0))  # Record 0 time for failed processing
+                except Exception as e:
+                    print(f"Error processing file {filename}: {str(e)}")
+                    processing_times.append((filename, 0))  # Record 0 time for failed processing
+                    break  # Break the encoding loop if there's a non-encoding related error
 
     # Sort events by timestamp
     all_events.sort(key=lambda x: x[0])
@@ -184,7 +211,28 @@ def process_logs_to_csv(logs_folder):
 
     save_events_to_csv(all_events, 'combined_events.csv')
 
-    print("Combined data has been saved to combined_jobs.csv, combined_reports.csv, and combined_events.csv")
+    # Calculate and print total processing time
+    total_end_time = time.time()
+    total_processing_time = total_end_time - total_start_time
+
+    print("\nProcessing Time Summary:")
+    for filename, process_time in processing_times:
+        print(f"{filename}: {process_time:.2f} seconds")
+
+    print(f"\nTotal processing time: {total_processing_time:.2f} seconds")
+    print(f"Average processing time per file: {total_processing_time / len(processing_times):.2f} seconds")
+
+    print("\nCombined data has been saved to combined_jobs.csv, combined_reports.csv, and combined_events.csv")
+
+    # Save processing times to CSV
+    with open('processing_times.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Filename', 'Processing Time (seconds)'])
+        writer.writerows(processing_times)
+        writer.writerow(['Total', total_processing_time])
+        writer.writerow(['Average', total_processing_time / len(processing_times)])
+
+    print("Processing times have been saved to processing_times.csv")
 
 if __name__ == "__main__":
     logs_folder = 'logs'
