@@ -204,12 +204,12 @@ def process_logs_to_csv(logs_folder):
     # Save combined results to CSV
     job_headers = ['id', 'name', 'scheduled_time', 'start_time', 'end_time', 'return_code',
                    'scheduled_message_code', 'start_message_code', 'end_message_code', 'remove_message_code']
-    save_to_csv(all_jobs, 'combined_jobs.csv', job_headers)
+    save_to_csv(all_jobs, 'csv/combined_jobs.csv', job_headers)
 
     report_headers = ['id', 'file_name', 'start_time', 'end_time', 'start_message_code', 'end_message_code']
-    save_to_csv(all_reports, 'combined_reports.csv', report_headers)
+    save_to_csv(all_reports, 'csv/combined_reports.csv', report_headers)
 
-    save_events_to_csv(all_events, 'combined_events.csv')
+    save_events_to_csv(all_events, 'csv/combined_events.csv')
 
     # Calculate and print total processing time
     total_end_time = time.time()
@@ -225,7 +225,7 @@ def process_logs_to_csv(logs_folder):
     print("\nCombined data has been saved to combined_jobs.csv, combined_reports.csv, and combined_events.csv")
 
     # Save processing times to CSV
-    with open('processing_times.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    with open('csv/processing_times.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Filename', 'Processing Time (seconds)'])
         writer.writerows(processing_times)

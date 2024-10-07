@@ -1,7 +1,12 @@
-import re
 import csv
-from datetime import datetime
+import os
+import re
+import time
 from collections import defaultdict
+from datetime import datetime
+
+# Define the project root directory
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def remove_header(log_content):
@@ -108,7 +113,9 @@ def parse_sap_log(log_content):
 
 
 def save_to_csv(data, filename, headers):
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+    filepath = os.path.join(PROJECT_ROOT, 'csv', filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
         for key, value in data.items():
@@ -116,18 +123,32 @@ def save_to_csv(data, filename, headers):
             row.update(value)
             writer.writerow(row)
 
-
 def save_events_to_csv(events, filename):
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+    filepath = os.path.join(PROJECT_ROOT, 'csv', filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Timestamp', 'Event', 'Message Code'])
         writer.writerows(events)
 
-
 def process_log_to_csv(log_file_path):
-    # Read the log file
-    with open(log_file_path, 'r', encoding='utf-8') as file:
-        log_content = file.read()
+    start_time = time.time()
+
+    # List of encodings to try
+    encodings = ['utf-8', 'iso-8859-1', 'windows-1252', 'ascii']
+
+    log_content = None
+    for encoding in encodings:
+        try:
+            with open(log_file_path, 'r', encoding=encoding) as file:
+                log_content = file.read()
+            break  # If successful, break out of the loop
+        except UnicodeDecodeError:
+            continue  # Try the next encoding
+
+    if log_content is None:
+        print(f"Error: Unable to decode file {log_file_path} with any of the attempted encodings.")
+        return
 
     # Parse the log
     jobs, reports, events = parse_sap_log(log_content)
@@ -135,18 +156,31 @@ def process_log_to_csv(log_file_path):
     # Save jobs to CSV
     job_headers = ['id', 'name', 'scheduled_time', 'start_time', 'end_time', 'return_code',
                    'scheduled_message_code', 'start_message_code', 'end_message_code', 'remove_message_code']
-    save_to_csv(jobs, '../jobs.csv', job_headers)
+    save_to_csv(jobs, 'jobs.csv', job_headers)
 
     # Save reports to CSV
     report_headers = ['id', 'file_name', 'start_time', 'end_time', 'start_message_code', 'end_message_code']
-    save_to_csv(reports, '../reports.csv', report_headers)
+    save_to_csv(reports, 'reports.csv', report_headers)
 
     # Save events to CSV
-    save_events_to_csv(events, '../events.csv')
+    save_events_to_csv(events, 'events.csv')
 
-    print("Data has been saved to jobs.csv, reports.csv, and events.csv")
+    end_time = time.time()
+    processing_time = end_time - start_time
 
+    print(f"Data has been saved to csv/jobs.csv, csv/reports.csv, and csv/events.csv")
+    print(f"Processing time: {processing_time:.2f} seconds")
+
+    # Save processing time to CSV
+    processing_time_path = os.path.join(PROJECT_ROOT, 'csv', 'processing_time.csv')
+    os.makedirs(os.path.dirname(processing_time_path), exist_ok=True)
+    with open(processing_time_path, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['File', 'Processing Time (seconds)'])
+        writer.writerow([log_file_path, processing_time])
+
+    print("Processing time has been saved to csv/processing_time.csv")
 
 if __name__ == "__main__":
-    log_file_path = '../logs/2024-10-05 09:31:48;2024-10-05 20:18:04.txt'
+    log_file_path = os.path.join(PROJECT_ROOT, 'logs', '158174833.LOG.txt')
     process_log_to_csv(log_file_path)

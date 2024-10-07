@@ -1,11 +1,4 @@
 .idea
 .cadence
 .venv
-combined_jobs.csv
-combined_reports.csv
-combined_events.csv
-jobs.csv
-reports.csv
-events.csv
-processing_times.csv
-logs/
+src/logs/
