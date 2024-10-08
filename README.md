@@ -72,7 +72,7 @@ root
 ## Setup
 
 1. Clone the repository
-2. Create and activate a virtual environment:
+2. Create and activate a virtual environment (Optional):
    ```
    python -m venv .venv
    source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
