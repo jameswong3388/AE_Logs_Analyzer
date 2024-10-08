@@ -7,7 +7,7 @@ The AE Log Analysis project is a Python-based tool designed to process and analy
 ## Project Structure
 
 ```
-AE Log Analysis
+root
 ├── src
 │   ├── csv
 │   ├── graphs
