@@ -35,9 +35,8 @@ root
   - Reports data
   - Event logs
 - Analyze job performance:
-  - Calculate success rates
   - Determine average and maximum job durations
-  - Identify most common jobs and jobs with high failure rates
+  - Identify most common jobs
 - Visualize data:
   - Plot concurrent jobs over time
   - Create histograms of job durations
