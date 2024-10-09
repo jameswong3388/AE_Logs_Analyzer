@@ -56,15 +56,6 @@ def analyze_jobs(df):
     top_jobs = df['name'].value_counts().head()
     print(top_jobs)
 
-    # Jobs with highest failure rate
-    if 'return_code' in df.columns:
-        job_failure_rates = df.groupby('name').agg({
-            'return_code': lambda x: (x != '0').mean() * 100
-        }).sort_values('return_code', ascending=False)
-
-        print("\nTop 5 Jobs with Highest Failure Rates:")
-        print(job_failure_rates.head())
-
     # Top 5 longest-running jobs
     longest_jobs = df.nlargest(10, 'duration')
     print("\nTop 5 Longest-Running Jobs:")
@@ -85,9 +76,6 @@ def analyze_jobs(df):
     pd.DataFrame(summary_data).to_csv(os.path.join(PROJECT_ROOT, 'results', 'job_summary.csv'), index=False)
 
     top_jobs.to_csv(os.path.join(PROJECT_ROOT, 'results', 'top_common_jobs.csv'))
-
-    if 'return_code' in df.columns:
-        job_failure_rates.to_csv(os.path.join(PROJECT_ROOT, 'results', 'job_failure_rates.csv'))
 
     longest_jobs[['name', 'id', 'duration', 'start_time', 'end_time', 'return_code']].to_csv(
         os.path.join(PROJECT_ROOT, 'results', 'longest_running_jobs.csv'), index=False)
