@@ -220,7 +220,7 @@ def process_logs_to_csv(logs_folder):
         "\nCombined data has been saved to csv/combined_jobs.csv, csv/combined_reports.csv, and csv/combined_events.csv")
 
     # Save processing times to CSV
-    processing_times_path = os.path.join(PROJECT_ROOT, 'csv', 'processing_times.csv')
+    processing_times_path = os.path.join(PROJECT_ROOT, 'benchmarks', 'processing_times.csv')
     os.makedirs(os.path.dirname(processing_times_path), exist_ok=True)
     with open(processing_times_path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)

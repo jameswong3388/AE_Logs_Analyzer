@@ -30,6 +30,7 @@ def get_concurrent_jobs(df):
     current_count = 0
     for time, change in events:
         current_count += change
+        current_count = max(0, current_count)
         concurrent_jobs.append((time, current_count))
 
     return pd.DataFrame(concurrent_jobs, columns=['timestamp', 'concurrent_jobs'])
@@ -81,15 +82,15 @@ def analyze_jobs(df):
         'Metric': ['Total Jobs', 'Completed Jobs', 'Success Rate', 'Average Job Duration', 'Maximum Job Duration'],
         'Value': [total_jobs, completed_jobs, success_rate, avg_duration, max_duration]
     }
-    pd.DataFrame(summary_data).to_csv(os.path.join(PROJECT_ROOT, 'csv', 'job_summary.csv'), index=False)
+    pd.DataFrame(summary_data).to_csv(os.path.join(PROJECT_ROOT, 'results', 'job_summary.csv'), index=False)
 
-    top_jobs.to_csv(os.path.join(PROJECT_ROOT, 'csv', 'top_common_jobs.csv'))
+    top_jobs.to_csv(os.path.join(PROJECT_ROOT, 'results', 'top_common_jobs.csv'))
 
     if 'return_code' in df.columns:
-        job_failure_rates.to_csv(os.path.join(PROJECT_ROOT, 'csv', 'job_failure_rates.csv'))
+        job_failure_rates.to_csv(os.path.join(PROJECT_ROOT, 'results', 'job_failure_rates.csv'))
 
     longest_jobs[['name', 'id', 'duration', 'start_time', 'end_time', 'return_code']].to_csv(
-        os.path.join(PROJECT_ROOT, 'csv', 'longest_running_jobs.csv'), index=False)
+        os.path.join(PROJECT_ROOT, 'results', 'longest_running_jobs.csv'), index=False)
 
     return df
 
@@ -105,7 +106,7 @@ def plot_concurrent_jobs(concurrent_jobs):
     plt.close()
 
     # Save concurrent jobs data to CSV
-    concurrent_jobs.to_csv(os.path.join(PROJECT_ROOT, 'csv', 'concurrent_jobs.csv'), index=False)
+    concurrent_jobs.to_csv(os.path.join(PROJECT_ROOT, 'results', 'concurrent_jobs.csv'), index=False)
 
 def plot_job_duration_histogram(df):
     plt.figure(figsize=(10, 6))
@@ -117,7 +118,7 @@ def plot_job_duration_histogram(df):
     plt.close()
 
     # Save job duration data to CSV
-    df[['name', 'id', 'duration']].to_csv(os.path.join(PROJECT_ROOT, 'csv', 'job_durations.csv'), index=False)
+    df[['name', 'id', 'duration']].to_csv(os.path.join(PROJECT_ROOT, 'results', 'job_durations.csv'), index=False)
 
 def main():
     # Load the jobs data
