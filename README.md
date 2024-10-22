@@ -2,20 +2,23 @@
 
 ## Project Overview
 
-The AE Log Analysis project is a Python-based tool designed to process and analyze log files from an SAP system. It provides functionality to parse log files, extract relevant information about jobs and reports, and generate insightful analytics.
+The AE Log Analysis project is a Python-based tool designed to process and analyze log files from an SAP system. It provides functionality to parse log files, extract relevant information about jobs and reports, and generate insightful analytics in both batch and real-time modes.
 
 ## Project Structure
 
 ```
 root
 ├── src
-│   ├── csv
-│   ├── graphs
-│   ├── logs
-│   ├── benchmarks
-│   ├── results
+│   ├── csv            # Output CSV files for parsed data
+│   ├── graphs         # Generated visualizations
+│   ├── logs           # Input directory for batch processing
+│   ├── live_logs      # Input directory for real-time processing
+│   ├── benchmarks     # Performance metrics
+│   ├── results        # Analysis results
+│   ├── utils.py       # Common utilities and helper functions
 │   ├── advance_analyzer.py
 │   ├── jobs_analyzer.py
+│   ├── live_log_processor.py
 │   ├── multiple_day_log_processor.py
 │   └── single_day_log_processor.py
 └── .gitignore
@@ -23,95 +26,179 @@ root
 
 ## Key Components
 
-1. **advance_analyzer.py**: This script performs advanced analysis on the processed data, including job patterns, error patterns, and system load over time.
+1. **live_log_processor.py**: Real-time log file monitoring and processing system that watches a directory for new log files and processes them automatically.
 
-2. **jobs_analyzer.py**: Analyzes the processed job data, generating statistics and visualizations about job performance, duration, and concurrency.
+2. **advance_analyzer.py**: Performs advanced analysis on processed data, including:
+   - Job patterns over time
+   - Error patterns and frequency
+   - System load analysis
+   - Trend visualization
 
-3. **multiple_day_log_processor.py**: Processes multiple log files, typically spanning several days, and combines the data into a single set of output files.
+3. **jobs_analyzer.py**: Analyzes job data with features for:
+   - Concurrent job analysis
+   - Job duration statistics
+   - Success rate calculation
+   - Performance visualization
+   - Top job identification
 
-4. **single_day_log_processor.py**: Processes a single day's log file, extracting job and report information.
+4. **multiple_day_log_processor.py**: Batch processes multiple log files with:
+   - Combined data output
+   - Resource usage monitoring
+   - Performance benchmarking
+   - Aggregate statistics
+
+5. **single_day_log_processor.py**: Processes individual log files with:
+   - Detailed job tracking
+   - Report extraction
+   - Event logging
+   - Resource monitoring
+
+6. **utils.py**: Core utilities providing:
+   - Log parsing functions
+   - CSV handling
+   - Resource monitoring
+   - Time range extraction
+   - File operations
 
 ## Features
 
-- Parse SAP log files and extract job, report, and event information
-- Process single-day or multiple-day log files
-- Generate CSV files with parsed data:
-  - Jobs data
-  - Reports data
+### Data Processing
+- Parse SAP log files for jobs, reports, and events
+- Support for both batch and real-time processing
+- Multiple encoding support (utf-8, iso-8859-1, windows-1252, ascii)
+- Automatic header detection and removal
+
+### Analysis Capabilities
+- Job Performance Metrics:
+  - Total job count and completion rates
+  - Average and maximum job durations
+  - Success rate analysis
+  - Concurrent job tracking
+  - Job pattern identification
+
+- System Analysis:
+  - Resource usage monitoring (CPU, RAM)
+  - Performance benchmarking
+  - Error pattern analysis
+  - System load tracking
+
+### Visualization
+- Job distribution by hour
+- Concurrent jobs over time
+- Job duration histograms
+- Error message distribution
+- System load trends
+
+### Output Formats
+- Structured CSV files for:
+  - Job data
+  - Report information
   - Event logs
-- Analyze job performance:
-  - Determine average and maximum job durations
-  - Identify most common jobs
-  - Analyze job patterns over time
-- Analyze error patterns
-- Analyze system load over time
-- Visualize data:
-  - Plot concurrent jobs over time
-  - Create histograms of job durations
-  - Graph job distribution by hour of day
-  - Graph error message code distribution
-  - Graph system load over time
+  - Performance benchmarks
+- Visual graphs and charts
+- Real-time processing statistics
 
-## How to Use
+## Usage Instructions
 
-1. Place your SAP log files in the `src/logs` directory.
-
-2. To process a single day's log:
+### Real-time Processing
+1. Start the live log processor:
+   ```bash
+   python src/live_log_processor.py
    ```
+2. Place new log files in the `src/live_logs` directory
+3. Monitor real-time processing in the console output
+
+### Batch Processing
+1. For single log file:
+   ```bash
    python src/single_day_log_processor.py
    ```
 
-3. To process multiple days' logs:
-   ```
+2. For multiple log files:
+   ```bash
    python src/multiple_day_log_processor.py
    ```
 
-4. To perform basic analysis on the processed data:
-   ```
+3. Run analysis:
+   ```bash
    python src/jobs_analyzer.py
-   ```
-
-5. To perform advanced analysis on the processed data:
-   ```
    python src/advance_analyzer.py
    ```
 
-6. Check the following directories for output:
-   - `src/csv`: Output CSV files
-   - `src/graphs`: Generated visualizations
-   - `src/results`: Additional analysis results
-   - `src/benchmarks`: Processing time information
+### Output Locations
+- CSV data: `src/csv/`
+- Visualizations: `src/graphs/`
+- Analysis results: `src/results/`
+- Performance metrics: `src/benchmarks/`
 
 ## Requirements
 
-- Python 3.x
-- pandas
-- matplotlib
-- seaborn
+### Python Dependencies
+- pandas: Data processing and analysis
+- matplotlib: Data visualization
+- watchdog: Real-time file monitoring
+- psutil: System resource monitoring
 
-## Setup
-
-1. Clone the repository
-2. Create and activate a virtual environment (Optional):
-   ```
+### Installation
+1. Create and activate virtual environment (recommended):
+   ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
-   ```
-3. Install the required packages:
-   ```
-   pip install pandas matplotlib seaborn psutil watchdog
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-## Notes
+2. Install dependencies:
+   ```bash
+   pip install pandas matplotlib psutil watchdog
+   ```
 
-- Ensure that your log files are in the correct format expected by the parsers.
-- The project uses a virtual environment (`.venv`) to manage dependencies.
-- The scripts attempt to decode log files using multiple encodings (utf-8, iso-8859-1, windows-1252, ascii) to handle potential encoding issues.
-- Processing times for log files are recorded and saved for performance analysis.
+## Log File Requirements
+
+The system expects log files with the following characteristics:
+- Extension: `.LOG.txt`
+- Time format: `YYYYMMDD/HHMMSS.mmm`
+- Message format: Contains message codes (e.g., 'U########')
+- Job entries: Contains job start, end, and status information
+- Report entries: Contains report execution details
+
+## Resource Monitoring
+
+The system tracks and reports:
+- Processing time per file
+- CPU usage percentage
+- RAM usage in MB
+- Peak resource utilization
+- Average resource consumption
+
+## Best Practices
+
+1. Regular Monitoring:
+   - Check the benchmarks directory for performance metrics
+   - Monitor system resource usage during processing
+   - Review error patterns periodically
+
+2. File Management:
+   - Maintain organized log directories
+   - Archive processed files regularly
+   - Monitor disk space usage
+
+3. Performance Optimization:
+   - Process large batches during off-peak hours
+   - Monitor concurrent job limits
+   - Regular cleanup of temporary files
 
 ## Contributing
 
-Feel free to fork this project and submit pull requests with any enhancements or bug fixes. Please ensure that your code adheres to the existing style and includes appropriate tests.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+Please ensure your code:
+- Follows existing code style
+- Includes appropriate error handling
+- Contains necessary documentation
+- Includes relevant tests
 
 ## License
 
