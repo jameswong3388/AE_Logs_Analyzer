@@ -10,25 +10,11 @@ The AE Log Analysis project is a Python-based tool suite designed to process and
 root
 ├── src
 │   ├── csv            # Output CSV files for parsed data
-│   │   ├── combined_jobs.csv
-│   │   ├── combined_reports.csv
-│   │   └── combined_events.csv
 │   ├── graphs         # Generated visualizations
-│   │   ├── job_distribution_by_hour.png
-│   │   ├── job_duration_distribution.png
-│   │   ├── system_load_over_time.png
-│   │   ├── error_distribution.png
-│   │   └── concurrent_jobs_analysis.png
 │   ├── logs           # Input directory for batch processing
 │   ├── live_logs      # Input directory for real-time processing
 │   ├── benchmarks     # Performance metrics
-│   │   ├── single_benchmarks.csv
-│   │   ├── multiple_benchmarks.csv
-│   │   └── realtime_benchmarks.csv
 │   ├── results        # Analysis results
-│   │   ├── job_summary.csv
-│   │   ├── longest_jobs.csv
-│   │   └── top_jobs.csv
 │   ├── utils.py       # Common utilities and helper functions
 │   ├── jobs_analyzer.py
 │   ├── live_log_processor.py
