@@ -48,17 +48,32 @@ class JobsAnalyzer:
         success_rate = (self.jobs_df[
                             'return_code'] == '0').mean() * 100 if 'return_code' in self.jobs_df.columns else None
 
-        # Calculate job durations
-        self.jobs_df['duration'] = (self.jobs_df['end_time'] - self.jobs_df['start_time']).dt.total_seconds() / 60
-        avg_duration = self.jobs_df['duration'].mean()
-        max_duration = self.jobs_df['duration'].max()
+        # Calculate job durations for jobs with valid start and end times
+        mask = self.jobs_df['start_time'].notna() & self.jobs_df['end_time'].notna()
+        self.jobs_df.loc[mask, 'duration'] = (
+                                                     self.jobs_df.loc[mask, 'end_time'] - self.jobs_df.loc[
+                                                 mask, 'start_time']
+                                             ).dt.total_seconds() / 60
+
+        # Filter out invalid durations (negative or extremely large values)
+        valid_duration_mask = (self.jobs_df['duration'] > 0) & (self.jobs_df['duration'] < 1440)  # Max 24 hours
+        valid_jobs = self.jobs_df[valid_duration_mask]
+
+        avg_duration = valid_jobs['duration'].mean()
+        max_duration = valid_jobs['duration'].max()
 
         # Get most common jobs
         top_jobs = self.jobs_df['name'].value_counts().head()
 
-        # Get longest running jobs
-        longest_jobs = self.jobs_df.nlargest(5, 'duration')[
-            ['name', 'id', 'duration', 'start_time', 'end_time', 'return_code']]
+        # Get longest running jobs with complete information
+        longest_jobs = valid_jobs.nlargest(20, 'duration')[
+            ['name', 'id', 'duration', 'start_time', 'end_time', 'return_code']
+        ].copy()
+
+        # Format duration as hours and minutes
+        longest_jobs['duration_formatted'] = longest_jobs['duration'].apply(
+            lambda x: f"{int(x // 60)}h {int(x % 60)}m"
+        )
 
         # Save results
         results = {
