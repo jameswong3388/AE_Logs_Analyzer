@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The AE Log Analysis project is a Python-based tool suite designed to process and analyze SAP system log files. It provides comprehensive functionality for parsing log files, extracting job and report information, and generating detailed analytics in both batch and real-time modes.
+The AE Log Handler project is a Python-based tool suite designed to process and analyze SAP system log files. It provides comprehensive functionality for parsing log files, extracting job and report information, and generating detailed analytics in both batch and real-time modes.
 
 ## Project Structure
 
