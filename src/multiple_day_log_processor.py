@@ -1,235 +1,96 @@
 import os
-import re
 import time
-from collections import defaultdict
-from datetime import datetime
+from src.utils import (
+    PROJECT_ROOT, extract_time_range, parse_sap_log, save_to_csv,
+    save_events_to_csv, monitor_resources, save_benchmarks, read_log_file
+)
 
-import csv
+def process_log_file(log_file_path, filename):
+    file_start_time = time.time()
 
-# Define the project root directory
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+    log_content = read_log_file(log_file_path)
+    if not log_content:
+        return 0, 0, 0
 
-def extract_time_range(log_content):
-    lines = log_content.split('\n')
-    first_line = next((line for line in lines if line.strip()), "")
-    last_line = next((line for line in reversed(lines) if line.strip()), "")
-
-    start_time_match = re.search(r'(\d{8}/\d{6}\.\d{3})', first_line)
-    end_time_match = re.search(r'(\d{8}/\d{6}\.\d{3})', last_line)
-
-    if start_time_match and end_time_match:
-        start_time = datetime.strptime(start_time_match.group(1), '%Y%m%d/%H%M%S.%f')
-        end_time = datetime.strptime(end_time_match.group(1), '%Y%m%d/%H%M%S.%f')
-        return start_time, end_time
+    start_time, end_time = extract_time_range(log_content)
+    if start_time and end_time:
+        print(f"Log period: {start_time} to {end_time}")
     else:
-        print("Debug: First line:", first_line)
-        print("Debug: Last line:", last_line)
-        return None, None
+        print("Unable to extract time range from the log file.")
+        print(f"File size: {os.path.getsize(log_file_path)} bytes")
+        print(f"First 100 characters: {log_content[:100]}")
 
-def remove_header(log_content):
-    lines = log_content.split('\n')
-    for i, line in enumerate(lines):
-        if 'U02000071' in line:
-            return '\n'.join(lines[i:])
-    return log_content  # Return original content if U02000071 is not found
+    jobs, reports, events = parse_sap_log(log_content)
 
-def parse_sap_log(log_content):
-    # Remove header
-    log_content = remove_header(log_content)
+    # Append results to CSV files
+    job_headers = ['id', 'name', 'scheduled_time', 'start_time', 'end_time', 'return_code',
+                   'scheduled_message_code', 'start_message_code', 'end_message_code', 'remove_message_code']
+    save_to_csv(jobs, 'combined_jobs.csv', job_headers, mode='a')
 
-    # Regular expressions for parsing
-    timestamp_pattern = r'(\d{8}/\d{6}\.\d{3})'
-    message_code_pattern = r'(U\d{8})'
-    job_is_to_be_started_pattern = r'Job \'(.+?)\' with RunID \'(\d+)\' is to be started\.'
-    job_start_pattern = r'Job \'(.+?)\' started with RunID \'(\d+)\'\.'
-    job_end_pattern = r'Job \'(.+?)\' with RunID \'(\d+)\' ended with return code \'(\d+)\'.'
-    job_remove_pattern = r'Job \'(.+?)\' with RunID \'(\d+)\' has been removed from the job table.'
-    report_start_pattern = r'Report \'(\d+)\' for file \'(.+?)\' has been started.'
-    report_end_pattern = r'Report \'(\d+)\' ended normally.'
+    report_headers = ['id', 'file_name', 'start_time', 'end_time', 'start_message_code', 'end_message_code']
+    save_to_csv(reports, 'combined_reports.csv', report_headers, mode='a')
 
-    # Data structures to store parsed information
-    jobs = defaultdict(lambda: defaultdict(str))
-    reports = defaultdict(dict)
-    events = []
+    save_events_to_csv(events, 'combined_events.csv', mode='a')
 
-    # Parse the log line by line
-    for line in log_content.split('\n'):
-        timestamp_match = re.search(timestamp_pattern, line)
-        message_code_match = re.search(message_code_pattern, line)
+    # Calculate processing time and monitor resource usage
+    file_end_time = time.time()
+    file_processing_time = file_end_time - file_start_time
+    cpu_usage, ram_usage = monitor_resources()
 
-        if timestamp_match and message_code_match:
-            timestamp = datetime.strptime(timestamp_match.group(1), '%Y%m%d/%H%M%S.%f')
-            message_code = message_code_match.group(1)
-            event = line[timestamp_match.end():].strip()  # Extract everything after the timestamp as the event
+    print(f"Processed {filename} in {file_processing_time:.2f} seconds")
+    print(f"CPU usage: {cpu_usage:.2f}%, RAM usage: {ram_usage:.2f} MB")
 
-            # Add each line as an event
-            events.append((timestamp, event, message_code))
-
-            # Check for specific patterns
-            if re.search(job_is_to_be_started_pattern, line):
-                job_name, run_id = re.search(job_is_to_be_started_pattern, line).groups()
-                jobs[run_id].update({
-                    'name': job_name,
-                    'scheduled_time': timestamp,
-                    'scheduled_message_code': message_code
-                })
-
-            elif re.search(job_start_pattern, line):
-                job_name, run_id = re.search(job_start_pattern, line).groups()
-                jobs[run_id].update({
-                    'name': job_name,
-                    'start_time': timestamp,
-                    'start_message_code': message_code
-                })
-
-            elif re.search(job_end_pattern, line):
-                job_name, run_id, return_code = re.search(job_end_pattern, line).groups()
-                jobs[run_id].update({
-                    'name': job_name,
-                    'return_code': return_code,
-                    'end_message_code': message_code
-                })
-
-            elif re.search(job_remove_pattern, line):
-                job_name, run_id = re.search(job_remove_pattern, line).groups()
-                jobs[run_id].update({
-                    'name': job_name,
-                    'end_time': timestamp,
-                    'remove_message_code': message_code
-                })
-
-            elif re.search(report_start_pattern, line):
-                report_id, file_name = re.search(report_start_pattern, line).groups()
-                reports[report_id] = {
-                    'file_name': file_name,
-                    'start_time': timestamp,
-                    'start_message_code': message_code
-                }
-
-            elif re.search(report_end_pattern, line):
-                report_id = re.search(report_end_pattern, line).group(1)
-                if report_id in reports:
-                    reports[report_id]['end_time'] = timestamp
-                    reports[report_id]['end_message_code'] = message_code
-
-    return jobs, reports, events
-
-def save_to_csv(data, filename, headers):
-    filepath = os.path.join(PROJECT_ROOT, 'csv', filename)
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=headers)
-        writer.writeheader()
-        for key, value in data.items():
-            row = {'id': key}
-            row.update(value)
-            writer.writerow(row)
-
-def save_events_to_csv(events, filename):
-    filepath = os.path.join(PROJECT_ROOT, 'csv', filename)
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(['Timestamp', 'Event', 'Message Code'])
-        writer.writerows(events)
+    return file_processing_time, cpu_usage, ram_usage
 
 def process_logs_to_csv(logs_folder):
-    all_jobs = defaultdict(lambda: defaultdict(str))
-    all_reports = defaultdict(dict)
-    all_events = []
     processing_times = []
-
-    # List of encodings to try
-    encodings = ['utf-8', 'iso-8859-1', 'windows-1252', 'ascii']
+    resource_usage = []
+    peak_cpu = 0
+    peak_ram = 0
 
     total_start_time = time.time()
 
-    # Process each log file in the folder
     logs_path = os.path.join(PROJECT_ROOT, logs_folder)
+
+    # Clear existing CSV files
+    for csv_file in ['combined_jobs.csv', 'combined_reports.csv', 'combined_events.csv']:
+        csv_path = os.path.join(PROJECT_ROOT, 'csv', csv_file)
+        if os.path.exists(csv_path):
+            os.remove(csv_path)
+
     for filename in os.listdir(logs_path):
         if filename.endswith('.LOG.txt'):
             log_file_path = os.path.join(logs_path, filename)
             print(f"Processing file: {filename}")
 
-            file_start_time = time.time()
+            file_processing_time, cpu_usage, ram_usage = process_log_file(log_file_path, filename)
 
-            for encoding in encodings:
-                try:
-                    with open(log_file_path, 'r', encoding=encoding) as file:
-                        log_content = file.read()
-
-                    start_time, end_time = extract_time_range(log_content)
-                    if start_time and end_time:
-                        print(f"Log period: {start_time} to {end_time}")
-                    else:
-                        print("Unable to extract time range from the log file.")
-                        print(f"File size: {os.path.getsize(log_file_path)} bytes")
-                        print(f"First 100 characters: {log_content[:100]}")
-
-                    jobs, reports, events = parse_sap_log(log_content)
-
-                    # Merge the results
-                    all_jobs.update(jobs)
-                    all_reports.update(reports)
-                    all_events.extend(events)
-
-                    # Calculate and record processing time for this file
-                    file_end_time = time.time()
-                    file_processing_time = file_end_time - file_start_time
-                    processing_times.append((filename, file_processing_time))
-
-                    print(f"Processed {filename} in {file_processing_time:.2f} seconds")
-
-                    # If we've successfully read and processed the file, break out of the encoding loop
-                    break
-                except UnicodeDecodeError:
-                    # If this encoding didn't work, try the next one
-                    if encoding == encodings[-1]:
-                        print(f"Error: Unable to decode file {filename} with any of the attempted encodings.")
-                        processing_times.append((filename, 0))  # Record 0 time for failed processing
-                except Exception as e:
-                    print(f"Error processing file {filename}: {str(e)}")
-                    processing_times.append((filename, 0))  # Record 0 time for failed processing
-                    break  # Break the encoding loop if there's a non-encoding related error
-
-    # Sort events by timestamp
-    all_events.sort(key=lambda x: x[0])
-
-    # Save combined results to CSV
-    job_headers = ['id', 'name', 'scheduled_time', 'start_time', 'end_time', 'return_code',
-                   'scheduled_message_code', 'start_message_code', 'end_message_code', 'remove_message_code']
-    save_to_csv(all_jobs, 'combined_jobs.csv', job_headers)
-
-    report_headers = ['id', 'file_name', 'start_time', 'end_time', 'start_message_code', 'end_message_code']
-    save_to_csv(all_reports, 'combined_reports.csv', report_headers)
-
-    save_events_to_csv(all_events, 'combined_events.csv')
+            processing_times.append((filename, file_processing_time))
+            resource_usage.append((filename, cpu_usage, ram_usage))
+            peak_cpu = max(peak_cpu, cpu_usage)
+            peak_ram = max(peak_ram, ram_usage)
 
     # Calculate and print total processing time
     total_end_time = time.time()
     total_processing_time = total_end_time - total_start_time
 
-    print("\nProcessing Time Summary:")
-    for filename, process_time in processing_times:
-        print(f"{filename}: {process_time:.2f} seconds")
+    # Calculate average CPU and RAM usage
+    avg_cpu = sum(usage[1] for usage in resource_usage) / len(resource_usage) if resource_usage else 0
+    avg_ram = sum(usage[2] for usage in resource_usage) / len(resource_usage) if resource_usage else 0
 
-    print(f"\nTotal processing time: {total_processing_time:.2f} seconds")
-    print(f"Average processing time per file: {total_processing_time / len(processing_times):.2f} seconds")
+    print("\nCombined data has been saved to csv/combined_jobs.csv, csv/combined_reports.csv, and csv/combined_events.csv")
 
-    print(
-        "\nCombined data has been saved to csv/combined_jobs.csv, csv/combined_reports.csv, and csv/combined_events.csv")
+    # Save benchmarks
+    benchmarks = [
+        (filename, process_time, cpu_usage, ram_usage)
+        for (filename, process_time), (_, cpu_usage, ram_usage) in zip(processing_times, resource_usage)
+    ]
+    benchmarks.append(('Total', total_processing_time, '', ''))
+    benchmarks.append(('Average', total_processing_time / len(processing_times), avg_cpu, avg_ram))
+    benchmarks.append(('Peak', '', peak_cpu, peak_ram))
 
-    # Save processing times to CSV
-    processing_times_path = os.path.join(PROJECT_ROOT, 'benchmarks', 'processing_times.csv')
-    os.makedirs(os.path.dirname(processing_times_path), exist_ok=True)
-    with open(processing_times_path, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(['Filename', 'Processing Time (seconds)'])
-        writer.writerows(processing_times)
-        writer.writerow(['Total', total_processing_time])
-        writer.writerow(['Average', total_processing_time / len(processing_times)])
-
-    print("Processing times have been saved to csv/processing_times.csv")
+    save_benchmarks(benchmarks, 'multiple_benchmarks.csv')
+    print("Benchmarks have been saved to benchmarks/multiple_benchmarks.csv")
 
 if __name__ == "__main__":
     logs_folder = 'logs'

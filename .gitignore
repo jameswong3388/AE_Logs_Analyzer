@@ -1,6 +1,7 @@
 .idea
 .cadence
 .venv
+src/live_logs/
 src/logs/
 src/csv/
 src/results/

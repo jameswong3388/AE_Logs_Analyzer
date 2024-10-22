@@ -99,7 +99,7 @@ root
    ```
 3. Install the required packages:
    ```
-   pip install pandas matplotlib seaborn
+   pip install pandas matplotlib seaborn psutil watchdog
    ```
 
 ## Notes
