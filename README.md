@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The AE Log Analysis project is a Python-based tool designed to process and analyze log files from an SAP system. It provides functionality to parse log files, extract relevant information about jobs and reports, and generate insightful analytics in both batch and real-time modes.
+The AE Log Analysis project is a Python-based tool suite designed to process and analyze SAP system log files. It provides comprehensive functionality for parsing log files, extracting job and report information, and generating detailed analytics in both batch and real-time modes.
 
 ## Project Structure
 
@@ -10,195 +10,217 @@ The AE Log Analysis project is a Python-based tool designed to process and analy
 root
 ├── src
 │   ├── csv            # Output CSV files for parsed data
+│   │   ├── combined_jobs.csv
+│   │   ├── combined_reports.csv
+│   │   └── combined_events.csv
 │   ├── graphs         # Generated visualizations
+│   │   ├── job_distribution_by_hour.png
+│   │   ├── job_duration_distribution.png
+│   │   ├── system_load_over_time.png
+│   │   ├── error_distribution.png
+│   │   └── concurrent_jobs_analysis.png
 │   ├── logs           # Input directory for batch processing
 │   ├── live_logs      # Input directory for real-time processing
 │   ├── benchmarks     # Performance metrics
+│   │   ├── single_benchmarks.csv
+│   │   ├── multiple_benchmarks.csv
+│   │   └── realtime_benchmarks.csv
 │   ├── results        # Analysis results
+│   │   ├── job_summary.csv
+│   │   ├── longest_jobs.csv
+│   │   └── top_jobs.csv
 │   ├── utils.py       # Common utilities and helper functions
-│   ├── advance_analyzer.py
 │   ├── jobs_analyzer.py
 │   ├── live_log_processor.py
 │   ├── multiple_day_log_processor.py
 │   └── single_day_log_processor.py
-└── .gitignore
+└── README.md
 ```
 
 ## Key Components
 
-1. **live_log_processor.py**: Real-time log file monitoring and processing system that watches a directory for new log files and processes them automatically.
+### 1. Jobs Analyzer (`jobs_analyzer.py`)
+- **Enhanced Job Analysis**:
+  - Top 20 longest-running jobs identification
+  - Detailed job duration analysis
+  - Wait time analysis (scheduled vs. actual start time)
+  - Success/failure rate tracking
+  - Comprehensive job status reporting
+  - Concurrent job analysis
+  - Resource utilization tracking
+  
+- **Visualization Features**:
+  - Job distribution by hour
+  - Duration distribution histograms
+  - System load trends
+  - Concurrent jobs visualization with heatmap
+  - Error distribution analysis
 
-2. **advance_analyzer.py**: Performs advanced analysis on processed data, including:
-   - Job patterns over time
-   - Error patterns and frequency
-   - System load analysis
-   - Trend visualization
+- **Output Formats**:
+  - Detailed CSV reports
+  - Formatted console output
+  - Visual graphs and charts
 
-3. **jobs_analyzer.py**: Analyzes job data with features for:
-   - Concurrent job analysis
-   - Job duration statistics
-   - Success rate calculation
-   - Performance visualization
-   - Top job identification
+### 2. Live Log Processor (`live_log_processor.py`)
+- Real-time log file monitoring
+- Automatic processing of new logs
+- Resource usage tracking
+- Performance benchmarking
+- Thread-safe processing
+- File lock management
+- Duplicate processing prevention
 
-4. **multiple_day_log_processor.py**: Batch processes multiple log files with:
-   - Combined data output
-   - Resource usage monitoring
-   - Performance benchmarking
-   - Aggregate statistics
+### 3. Multiple Day Log Processor (`multiple_day_log_processor.py`)
+- Batch processing capabilities
+- Aggregate statistics
+- Combined data output
+- Resource monitoring
+- Performance benchmarking
 
-5. **single_day_log_processor.py**: Processes individual log files with:
-   - Detailed job tracking
-   - Report extraction
-   - Event logging
-   - Resource monitoring
+### 4. Single Day Log Processor (`single_day_log_processor.py`)
+- Individual log file processing
+- Detailed event tracking
+- Resource monitoring
+- Performance metrics
 
-6. **utils.py**: Core utilities providing:
-   - Log parsing functions
-   - CSV handling
-   - Resource monitoring
-   - Time range extraction
-   - File operations
+### 5. Utilities (`utils.py`)
+- Enhanced log parsing
+- Multiple encoding support
+- CSV operations
+- Resource monitoring
+- Time range extraction
+- Benchmark tracking
 
 ## Features
 
 ### Data Processing
-- Parse SAP log files for jobs, reports, and events
-- Support for both batch and real-time processing
-- Multiple encoding support (utf-8, iso-8859-1, windows-1252, ascii)
-- Automatic header detection and removal
+- **Log Parsing**:
+  - Multiple encoding support (utf-8, iso-8859-1, windows-1252, ascii)
+  - Robust error handling
+  - Automatic header detection
+  - Thread-safe operations
+
+- **Job Analysis**:
+  - Duration calculation and validation
+  - Wait time analysis
+  - Status tracking
+  - Return code analysis
+  - Concurrent job monitoring
+
+- **Performance Tracking**:
+  - CPU usage monitoring
+  - RAM utilization
+  - Processing time benchmarks
+  - Resource peaks tracking
 
 ### Analysis Capabilities
-- Job Performance Metrics:
-  - Total job count and completion rates
-  - Average and maximum job durations
-  - Success rate analysis
-  - Concurrent job tracking
-  - Job pattern identification
+- **Job Metrics**:
+  - Top 20 longest-running jobs
+  - Success/failure rates
+  - Average and maximum durations
+  - Wait time analysis
+  - Concurrent job patterns
+  - Job frequency analysis
 
-- System Analysis:
-  - Resource usage monitoring (CPU, RAM)
+- **System Analysis**:
+  - Resource utilization
   - Performance benchmarking
-  - Error pattern analysis
-  - System load tracking
+  - Error pattern identification
+  - Load distribution analysis
 
 ### Visualization
-- Job distribution by hour
-- Concurrent jobs over time
-- Job duration histograms
-- Error message distribution
-- System load trends
+- **Distribution Analysis**:
+  - Hourly job distribution
+  - Duration patterns
+  - Concurrent job trends
+  - Error frequency visualization
 
-### Output Formats
-- Structured CSV files for:
-  - Job data
-  - Report information
-  - Event logs
-  - Performance benchmarks
-- Visual graphs and charts
-- Real-time processing statistics
+- **System Monitoring**:
+  - Resource usage graphs
+  - Load pattern visualization
+  - Performance trend analysis
 
 ## Usage Instructions
 
-### Real-time Processing
-1. Start the live log processor:
-   ```bash
-   python src/live_log_processor.py
-   ```
-2. Place new log files in the `src/live_logs` directory
-3. Monitor real-time processing in the console output
+### 1. Real-time Processing
+```bash
+python src/live_log_processor.py
+```
+- Monitor `src/live_logs` directory for new files
+- Real-time processing and analysis
+- Automatic benchmark generation
 
-### Batch Processing
-1. For single log file:
-   ```bash
-   python src/single_day_log_processor.py
-   ```
+### 2. Batch Processing
+Single log file:
+```bash
+python src/single_day_log_processor.py
+```
 
-2. For multiple log files:
-   ```bash
-   python src/multiple_day_log_processor.py
-   ```
+Multiple log files:
+```bash
+python src/multiple_day_log_processor.py
+```
 
-3. Run analysis:
-   ```bash
-   python src/jobs_analyzer.py
-   python src/advance_analyzer.py
-   ```
+### 3. Analysis
+```bash
+python src/jobs_analyzer.py
+```
 
 ### Output Locations
-- CSV data: `src/csv/`
-- Visualizations: `src/graphs/`
+- Processed data: `src/csv/`
 - Analysis results: `src/results/`
+- Visualizations: `src/graphs/`
 - Performance metrics: `src/benchmarks/`
 
 ## Requirements
 
 ### Python Dependencies
-- pandas: Data processing and analysis
-- matplotlib: Data visualization
-- watchdog: Real-time file monitoring
-- psutil: System resource monitoring
+```
+pandas>=1.3.0
+matplotlib>=3.4.0
+seaborn>=0.11.0
+watchdog>=2.1.0
+psutil>=5.8.0
+```
 
 ### Installation
-1. Create and activate virtual environment (recommended):
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install pandas matplotlib psutil watchdog
-   ```
-
-## Log File Requirements
-
-The system expects log files with the following characteristics:
-- Extension: `.LOG.txt`
-- Time format: `YYYYMMDD/HHMMSS.mmm`
-- Message format: Contains message codes (e.g., 'U########')
-- Job entries: Contains job start, end, and status information
-- Report entries: Contains report execution details
-
-## Resource Monitoring
-
-The system tracks and reports:
-- Processing time per file
-- CPU usage percentage
-- RAM usage in MB
-- Peak resource utilization
-- Average resource consumption
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
 ## Best Practices
 
-1. Regular Monitoring:
-   - Check the benchmarks directory for performance metrics
-   - Monitor system resource usage during processing
-   - Review error patterns periodically
+### 1. Data Management
+- Regular archiving of processed logs
+- Periodic cleanup of temporary files
+- Monitoring of disk space usage
 
-2. File Management:
-   - Maintain organized log directories
-   - Archive processed files regularly
-   - Monitor disk space usage
+### 2. Performance Optimization
+- Process large batches during off-peak hours
+- Monitor resource utilization
+- Regular benchmark review
+- Clean up old results periodically
 
-3. Performance Optimization:
-   - Process large batches during off-peak hours
-   - Monitor concurrent job limits
-   - Regular cleanup of temporary files
+### 3. Analysis Workflow
+- Review job summary reports regularly
+- Monitor error patterns
+- Track system load trends
+- Analyze concurrent job patterns
 
 ## Contributing
-
 1. Fork the repository
 2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+3. Implement changes with tests
+4. Submit pull request with documentation
 
-Please ensure your code:
-- Follows existing code style
-- Includes appropriate error handling
-- Contains necessary documentation
-- Includes relevant tests
+### Code Standards
+- PEP 8 compliance
+- Comprehensive error handling
+- Clear documentation
+- Test coverage
+- Type hints (where applicable)
 
 ## License
 
