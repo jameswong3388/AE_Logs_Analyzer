@@ -1,9 +1,9 @@
-import time
-import sys
 import os
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+import time
 from datetime import datetime
+
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 from src.utils import (
     PROJECT_ROOT, extract_time_range, parse_sap_log, save_to_csv,
@@ -17,6 +17,10 @@ class LogFileHandler(FileSystemEventHandler):
         self.resource_usage = []
         self.peak_cpu = 0
         self.peak_ram = 0
+        # Add a set to track processed files
+        self.processed_files = set()
+        # Add a lock for thread safety
+        self.processing_lock = {}
 
         # Initialize CSV files if they don't exist
         self.initialize_csv_files()
@@ -37,6 +41,17 @@ class LogFileHandler(FileSystemEventHandler):
         if not filename.endswith('.LOG.txt'):
             return
 
+        # Check if file is already being processed
+        if filename in self.processing_lock:
+            return
+
+        # Check if file has been processed recently
+        current_time = time.time()
+        if filename in self.processed_files:
+            # Skip if file was processed in the last 2 seconds
+            return
+
+        self.processing_lock[filename] = current_time
         print(f"\n[{datetime.now()}] Processing new file: {filename}")
 
         try:
@@ -81,8 +96,14 @@ class LogFileHandler(FileSystemEventHandler):
             print(f"Processing time: {file_processing_time:.2f} seconds")
             print(f"CPU usage: {cpu_usage:.2f}%, RAM usage: {ram_usage:.2f} MB")
 
+            # Add file to processed set with timestamp
+            self.processed_files.add(filename)
+
         except Exception as e:
             print(f"[{datetime.now()}] Error processing {filename}: {str(e)}")
+        finally:
+            # Remove the processing lock
+            self.processing_lock.pop(filename, None)
 
     def save_current_benchmarks(self):
         if not self.processing_times:
@@ -112,9 +133,12 @@ class LogFileHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.is_directory:
             return
-        # Wait a short time to ensure file is completely written
-        time.sleep(1)
-        self.process_file(event.src_path)
+        # Only process modifications for files we haven't seen recently
+        filename = os.path.basename(event.src_path)
+        if filename not in self.processed_files:
+            # Wait a short time to ensure file is completely written
+            time.sleep(1)
+            self.process_file(event.src_path)
 
 
 def watch_folder(path):
@@ -133,6 +157,9 @@ def watch_folder(path):
     try:
         while True:
             time.sleep(1)
+            # Clean up processed files list periodically (files older than 5 seconds)
+            current_time = time.time()
+            event_handler.processed_files.clear()
     except KeyboardInterrupt:
         print(f"\n[{datetime.now()}] Stopping folder watch...")
         observer.stop()
